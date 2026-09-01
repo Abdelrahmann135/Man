@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مان - للحدايد والبويات</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span id="brandName">مان</span><span class="tag">حدايد وبويات</span></div>
+    <div class="nav-links">
+      <a href="index.html">الرئيسية</a>
+      <a href="catalog.html">تصنيفات المنتجات</a>
+      <a href="index.html#location">اللوكيشن</a>
+    </div>
+  </div>
+</div>
+
+<div class="catalog-header">
+  <div class="catalog-header-inner">
+    <h1>تصنيفات المنتجات</h1>
+  </div>
+</div>
+
+<div class="controls">
+  <input type="text" id="searchBox" class="search-box" placeholder="ابحث عن منتج ...">
+  <button class="filter-chip active" data-cat="all">الكل</button>
+  <div id="chipHolder" style="display:contents;"></div>
+</div>
+
+<div class="items-wrap" id="itemsWrap"><div class="empty-state">تحميل المنتجات...</div></div>
+
+<footer>
+  جميع الحقوق محفوظة — <span id="footerName">مان</span> &copy; 2026
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="utils.js"></script>
+<script>
+  const chipHolder = document.getElementById('chipHolder');
+  const itemsWrap = document.getElementById('itemsWrap');
+  const searchBox = document.getElementById('searchBox');
+  let activeCat = 'all';
+  let categories = [];
+
+  Promise.all([
+    db.ref('storeConfig').once('value'),
+    db.ref('categories').once('value')
+  ]).then(([storeSnap, catSnap]) => {
+    const STORE = storeSnap.val() || {};
+    categories = catSnap.val() || [];
+
+    document.getElementById('brandName').textContent = STORE.name || '';
+    document.getElementById('footerName').textContent = STORE.name || '';
+
+    categories.forEach(cat => {
+      const chip = document.createElement('button');
+      chip.className = 'filter-chip';
+      chip.dataset.cat = cat.id;
+      chip.innerHTML = `<span class="swatch" style="background:${cat.color}"></span>${cat.name}`;
+      chipHolder.appendChild(chip);
+    });
+
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeCat = chip.dataset.cat;
+        render();
+      });
+    });
+
+    render();
+
+    // فتح تصنيف معين لو جه لينك فيه #id من الصفحة الرئيسية
+    if (location.hash) {
+      const catId = location.hash.replace('#', '');
+      const chip = document.querySelector(`.filter-chip[data-cat="${catId}"]`);
+      if (chip) chip.click();
+    }
+  }).catch(err => {
+    itemsWrap.innerHTML = '<div class="empty-state">حصل خطأ في تحميل البيانات</div>';
+    console.error(err);
+  });
+
+  searchBox.addEventListener('input', render);
+
+  // لو السعر "0 ج" (يعني معندوش سعر متسجل)، منعرضش رقم السعر خالص
+  function priceDisplay(priceStr){
+    if (!priceStr) return '';
+    const num = parseFloat(priceStr);
+    if (!isNaN(num) && num === 0) return '';
+    return priceStr;
+  }
+
+  function render(){
+    const q = searchBox.value.trim().toLowerCase();
+    itemsWrap.innerHTML = '';
+    let totalShown = 0;
+
+    categories.forEach(cat => {
+      if (activeCat !== 'all' && activeCat !== cat.id) return;
+
+      const filteredItems = cat.items
+        .filter(it => it.stock !== 0)
+        .filter(it => it.name.toLowerCase().includes(q));
+      if (filteredItems.length === 0) return;
+
+      totalShown += filteredItems.length;
+
+      const heading = document.createElement('div');
+      heading.className = 'cat-heading';
+      heading.id = cat.id;
+      heading.innerHTML = `<span class="swatch" style="background:${cat.color}"></span> ${cat.name}`;
+      itemsWrap.appendChild(heading);
+
+      const grid = document.createElement('div');
+      grid.className = 'item-grid';
+
+      filteredItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <div class="item-img"><img src="${item.image}" alt="${item.name}" loading="lazy"></div>
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-meta">
+              <span class="item-unit">${item.unit || ''}</span>
+              <span class="item-price">${priceDisplay(item.price)}</span>
+            </div>
+          </div>`;
+        const img = card.querySelector('img');
+        attachImageFallback(img, item.name, cat.color);
+        grid.appendChild(card);
+      });
+
+      itemsWrap.appendChild(grid);
+    });
+
+    if (totalShown === 0){
+      itemsWrap.innerHTML = '<div class="empty-state">لا يوجد منتجات مطابقة للبحث</div>';
+    }
+  }
+</script>
+</body>
+</html>

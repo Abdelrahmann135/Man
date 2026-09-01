@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم — مان</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .admin-login {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    z-index: 9999;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 40px;
+    max-width: 400px;
+    text-align: center;
+  }
+  .login-box h2 {
+    color: var(--gold);
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+  }
+  .login-box input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface-alt);
+    color: var(--ink);
+    font-family: 'Cairo', Arial;
+    font-size: 1rem;
+  }
+  .login-box button {
+    width: 100%;
+    padding: 12px;
+    background: var(--gold);
+    color: #0A0A0B;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .login-box button:hover {
+    background: var(--gold-dark);
+  }
+  .login-box button:disabled {
+    opacity: .6;
+    cursor: default;
+  }
+  .login-error {
+    color: #FF6B6B;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    display: none;
+  }
+  .admin-content {
+    display: none;
+  }
+  .admin-header {
+    background: var(--panel);
+    border-bottom: 2px solid var(--gold);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .admin-header h1 {
+    color: var(--gold);
+  }
+  .sync-badge {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .sync-badge.saving { color: var(--gold); }
+  .sync-badge.saved { color: #4CAF50; }
+  .sync-badge.error { color: #FF6B6B; }
+  .logout-btn {
+    background: #DC3232;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .logout-btn:hover {
+    background: #B32E2E;
+  }
+  .admin-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+  .search-bar {
+    margin-bottom: 30px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .search-bar input {
+    flex: 1;
+    min-width: 200px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .search-bar button {
+    padding: 12px 24px;
+    background: var(--gold);
+    color: #0A0A0B;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .loading-msg {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+  }
+  .product-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .product-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  .product-card h3 {
+    color: var(--ink);
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+  }
+  .product-form {
+    display: grid;
+    gap: 10px;
+  }
+  .product-form label {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: bold;
+  }
+  .product-form input {
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface-alt);
+    color: var(--ink);
+  }
+  .product-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 15px;
+  }
+  .save-btn {
+    flex: 1;
+    padding: 10px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .save-btn:hover {
+    background: #45a049;
+  }
+  .delete-btn {
+    padding: 10px 15px;
+    background: #DC3232;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .delete-btn:hover {
+    background: #B32E2E;
+  }
+  .zero-stock {
+    opacity: 0.6;
+    border-right: 3px solid #DC3232;
+  }
+  .status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    display: none;
+  }
+  .status.show {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div class="admin-login" id="loginScreen">
+  <div class="login-box">
+    <h2>لوحة التحكم</h2>
+    <div class="login-error" id="loginError">ايميل او كلمة مرور غير صحيحة</div>
+    <input type="email" id="emailInput" placeholder="الإيميل" autocomplete="username" />
+    <input type="password" id="passwordInput" placeholder="كلمة السر" autocomplete="current-password" />
+    <button id="loginBtn" onclick="login()">دخول</button>
+  </div>
+</div>
+
+<div class="admin-content" id="adminContent">
+  <div class="admin-header">
+    <h1>تحكم بالمنتجات</h1>
+    <span class="sync-badge" id="syncBadge"></span>
+    <button class="logout-btn" onclick="logout()">خروج</button>
+  </div>
+
+  <div class="admin-main">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="ابحث على منتج...">
+      <select id="categoryFilter" style="padding: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink);">
+        <option value="">كل التصنيفات</option>
+      </select>
+      <button onclick="filterProducts()">بحث</button>
+    </div>
+
+    <div class="loading-msg" id="loadingMsg">تحميل المنتجات...</div>
+    <div class="product-list" id="productList"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  const auth = firebase.auth();
+  let currentData = [];
+  let filteredData = [];
+  let dataLoaded = false;
+
+  // ---------- تسجيل الدخول ----------
+  function login() {
+    const email = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    auth.signInWithEmailAndPassword(email, password)
+      .catch(err => {
+        document.getElementById('loginError').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('loginError').style.display = 'none';
+        }, 3000);
+      })
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function logout() {
+    auth.signOut();
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminContent').style.display = 'block';
+      if (!dataLoaded) loadData();
+    } else {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('adminContent').style.display = 'none';
+      document.getElementById('passwordInput').value = '';
+    }
+  });
+
+  document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') login();
+  });
+
+  // ---------- تحميل البيانات من Firebase ----------
+  function loadData() {
+    db.ref('categories').once('value').then(snap => {
+      currentData = snap.val() || [];
+      filteredData = currentData;
+      dataLoaded = true;
+      document.getElementById('loadingMsg').style.display = 'none';
+      loadCategoryFilter();
+      renderProducts();
+    }).catch(err => {
+      document.getElementById('loadingMsg').textContent = 'خطأ اثناء تحميل البيانات: ' + err.message;
+    });
+  }
+
+  function loadCategoryFilter() {
+    const select = document.getElementById('categoryFilter');
+    select.innerHTML = '<option value="">كل التصنيفات</option>';
+    currentData.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat.id;
+      option.textContent = cat.name;
+      select.appendChild(option);
+    });
+  }
+
+  function filterProducts() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const catFilter = document.getElementById('categoryFilter').value;
+
+    filteredData = currentData
+      .map(cat => {
+        if (catFilter && cat.id !== catFilter) return null;
+        return {
+          ...cat,
+          items: cat.items.filter(item => item.name.toLowerCase().includes(search))
+        };
+      })
+      .filter(cat => cat && cat.items.length > 0);
+
+    renderProducts();
+  }
+
+  // مفتاح فريد لكل منتج، مبني على مسار الصورة (مأخوذ من كود الصنف الأصلي في ملف المخزون)
+  // ده بيحل مشكلة كانت موجودة قبل كده: تعديل منتج أثناء البحث كان بيعدّل منتج تاني غلط بسبب الاعتماد على رقم الصف بدل هوية المنتج
+  function itemKey(item) {
+    return item.image;
+  }
+
+  function renderProducts() {
+    const list = document.getElementById('productList');
+    list.innerHTML = '';
+
+    const toRender = filteredData.length > 0 ? filteredData
+                      : (document.getElementById('searchInput').value || document.getElementById('categoryFilter').value)
+                        ? [] : currentData;
+
+    toRender.forEach(cat => {
+      cat.items.forEach(item => {
+        const key = itemKey(item);
+        const safeKey = key.replace(/[^a-zA-Z0-9]/g, '_');
+        const card = document.createElement('div');
+        card.className = 'product-card' + (item.stock === 0 ? ' zero-stock' : '');
+
+        card.innerHTML = `
+          <h3>${item.name}</h3>
+          <div class="product-form">
+            <div>
+              <label>السعر:</label>
+              <input type="text" value="${item.price || ''}" onchange="updateItem('${cat.id}', '${key}', 'price', this.value)">
+            </div>
+            <div>
+              <label>عدد القطع:</label>
+              <input type="number" value="${item.stock !== undefined ? item.stock : ''}" placeholder="غير محدد" onchange="updateItem('${cat.id}', '${key}', 'stock', this.value)">
+            </div>
+            <div>
+              <label>الصورة:</label>
+              <input type="text" value="${item.image || ''}" onchange="updateItem('${cat.id}', '${key}', 'image', this.value)">
+            </div>
+            <div class="status" id="status-${cat.id}-${safeKey}">"اضغط "حفظ</div>
+            <div class="product-actions">
+              <button class="save-btn" onclick="saveData()">حفظ</button>
+              <button class="delete-btn" onclick="deleteItem('${cat.id}', '${key}')">حذف</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    });
+  }
+
+  // بيدور على المنتج بهويته الحقيقية في currentData الكاملة (مش في القايمة المفلترة) عشان التعديل يروح للمنتج الصح دايمًا
+  function updateItem(catId, key, field, value) {
+    const cat = currentData.find(c => c.id === catId);
+    if (!cat) return;
+    const item = cat.items.find(it => itemKey(it) === key);
+    if (!item) return;
+
+    if (field === 'stock') {
+      item[field] = value === '' ? undefined : (parseInt(value) || 0);
+    } else {
+      item[field] = value;
+    }
+
+    const safeKey = key.replace(/[^a-zA-Z0-9]/g, '_');
+    const statusEl = document.getElementById(`status-${catId}-${safeKey}`);
+    if (statusEl) {
+      statusEl.classList.add('show');
+      setTimeout(() => statusEl.classList.remove('show'), 3000);
+    }
+  }
+
+  function deleteItem(catId, key) {
+    if (!confirm('تاكيد حذف المنتج؟')) return;
+    const cat = currentData.find(c => c.id === catId);
+    if (!cat) return;
+    cat.items = cat.items.filter(it => itemKey(it) !== key);
+    filterProducts();
+    saveData();
+  }
+
+  // ---------- الحفظ على Firebase (بيوصل لكل الزباين فورًا) ----------
+  function saveData() {
+    const badge = document.getElementById('syncBadge');
+    badge.textContent = 'يتم الحفظ...';
+    badge.className = 'sync-badge saving';
+
+    db.ref('categories').set(currentData)
+      .then(() => {
+        badge.textContent = 'تم الحفظ';
+        badge.className = 'sync-badge saved';
+      })
+      .catch(err => {
+        badge.textContent = 'فشل الحفظ: ' + err.message;
+        badge.className = 'sync-badge error';
+      });
+  }
+</script>
+
+</body>
+</html>

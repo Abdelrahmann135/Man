@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مان للحدايد والبويات</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span id="brandName">مان</span><span class="tag">حدايد وبويات</span></div>
+    <div class="nav-links">
+      <a href="index.html">الرئيسية</a>
+      <a href="catalog.html">تصنيفات المنتجات</a>
+      <a href="#location">اللوكيشن</a>
+      <a href="admin.html" style="font-size: 0.7rem; opacity: 0.3;">⚙️</a>
+    </div>
+  </div>
+</div>
+
+<section class="hero">
+  <div>
+    <h1 id="heroTitle">كل حاجة لمشروعك... <span>حدايد وبويات</span> في مكان واحد</h1>
+    <p id="heroTagline">كل حاجة لمشروعك... حديد، عدد، أدوات، دهانات ومستلزمات بناء</p>
+    <div class="cta-row">
+      <a href="catalog.html" class="btn btn-primary">تصفح المنتجات</a>
+      <a id="fbBtn" href="#" target="_blank" class="btn btn-facebook">صفحتنا على فيسبوك</a>
+      <a id="locBtn" href="#" target="_blank" class="btn btn-outline">اللوكيشن على الخريطة</a>
+    </div>
+  </div>
+  <div class="hero-panel">
+    <h3>معلومات سريعة</h3>
+    <ul>
+      <li><span>العنوان</span><b id="addrText">—</b></li>
+      <li><span>الهاتف</span><b id="phoneText">—</b></li>
+      <li><span>عدد التصنيفات</span><b id="catCount">—</b></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section" id="location">
+  <div class="section-title"><span class="num">01</span><h2>اللوكيشن</h2></div>
+  <div class="location-grid">
+    <div class="location-map-card">
+      <div class="pin">📍</div>
+      <h3>افتح موقعنا على الخريطة</h3>
+      <a id="locBtn3" href="#" target="_blank" class="btn btn-primary">افتح الخريطة</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title"><span class="num">02</span><h2>التصنيفات</h2></div>
+  <div class="cat-grid" id="catPreview"><div class="empty-state">تحميل التصنيفات...</div></div>
+</section>
+
+<footer>
+  جميع الحقوق محفوظة — <span id="footerName">مان للحدايد والبويات</span>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  Promise.all([
+    db.ref('storeConfig').once('value'),
+    db.ref('categories').once('value')
+  ]).then(([storeSnap, catSnap]) => {
+    const STORE = storeSnap.val() || {};
+    const activeCategories = catSnap.val() || [];
+
+    document.getElementById('brandName').textContent = STORE.name || '';
+    document.getElementById('footerName').textContent = STORE.name || '';
+    if (STORE.tagline) {
+      document.getElementById('heroTitle').innerHTML = STORE.tagline.split('...')[0] + ' <span>حدايد وبويات</span>';
+      document.getElementById('heroTagline').textContent = STORE.tagline;
+    }
+    document.getElementById('addrText').textContent = STORE.address || '—';
+    document.getElementById('phoneText').textContent = STORE.phone || '—';
+    document.getElementById('catCount').textContent = activeCategories.length + ' تصنيف';
+
+    if (STORE.facebookUrl) document.getElementById('fbBtn').href = STORE.facebookUrl;
+    if (STORE.locationUrl) {
+      document.getElementById('locBtn').href = STORE.locationUrl;
+      document.getElementById('locBtn3').href = STORE.locationUrl;
+    }
+
+    const preview = document.getElementById('catPreview');
+    preview.innerHTML = '';
+    activeCategories.forEach(cat => {
+      const availableCount = cat.items.filter(item => item.stock === undefined || item.stock > 0).length;
+
+      const a = document.createElement('a');
+      a.href = 'catalog.html#' + cat.id;
+      a.className = 'cat-card';
+      a.innerHTML = `
+        <div class="cat-strip" style="background:${cat.color}"></div>
+        <div class="cat-body">
+          <h3>${cat.name}</h3>
+          <p>${cat.description || ''}</p>
+          <span class="cat-count">${availableCount} منتج</span>
+        </div>`;
+      preview.appendChild(a);
+    });
+  }).catch(err => {
+    document.getElementById('catPreview').innerHTML = '<div class="empty-state">خطأ في تحميل البيانات</div>';
+    console.error(err);
+  });
+</script>
+</body>
+</html>
